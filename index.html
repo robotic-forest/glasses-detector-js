@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-time Glasses Detection (JS)</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- MediaPipe Face Mesh -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Real-time Glasses Detection (JS)</h1>
+    <section class="controls" style="margin: 8px 0 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <button id="toggleBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+      <label style="display:inline-flex; align-items:center; gap:6px;">
+        <input type="checkbox" id="debugToggle" /> Debug log
+      </label>
+      <label style="display:inline-flex; align-items:center; gap:6px;">
+        Threshold
+        <input id="thresholdInput" type="range" min="0" max="0.5" step="0.01" value="0.13" />
+        <span id="thresholdLabel">0.13</span>
+      </label>
+    </section>
+    <section class="stage">
+      <video id="video" playsinline></video>
+      <canvas id="output"></canvas>
+    </section>
+    <section class="panels">
+      <div class="panel">
+        <h3>Aligned Face</h3>
+        <canvas id="aligned" style="transform:none;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Sobel Y</h3>
+        <canvas id="sobel" style="transform:none;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>ROIs</h3>
+        <canvas id="rois" style="transform:none;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Result</h3>
+        <div id="result" class="badge">—</div>
+      </div>
+      <div class="panel" style="grid-column: 1 / -1; max-height: 160px; overflow:auto;">
+        <h3>Debug</h3>
+        <pre id="debugLog" style="white-space: pre-wrap; margin:0; font-size:12px; line-height:1.3; color:#9fb3c8;"></pre>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+
