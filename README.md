@@ -92,7 +92,8 @@ Now edits to `index.html`, `batch.html`, `styles.css`, or files under `src/` wil
 You can evaluate a dataset of images (e.g., `H:/Faces/faces-spring-2020/faces-spring-2020`) and export a CSV of results.
 
 1. Start the static server as above and open:
-   - `http://localhost:5173/batch.html`
+   - Default algorithm (Sobel/Otsu): `http://localhost:5173/batch.html`
+   - Edge-based nasal-bridge algorithm: `http://localhost:5173/edge-batch/`
 2. Click the file picker and select the root folder of your images. On Windows/WSL, you can navigate to `H:` via the picker if your browser is running on Windows. If you run the server in WSL, ensure the folder is accessible from the browser by copying a subset to your Linux filesystem or mounting.
 3. Click "Start" to process all images. You can cancel at any time.
 4. When finished, click "Download CSV" to save results: `path,measure,withGlasses`.

@@ -220,12 +220,13 @@ async function runBatch(files, groundTruthMap = null) {
 
   const totalFiles = files.length;
   let processedCount = 0;
+  // Accumulate results in file order for stable CSV generation
+  // rows declared earlier for stable CSV order
 
   function reclassifyGridAndCsv() {
     if (!gridEl) return;
     const threshold = getThreshold();
     const thumbs = Array.from(gridEl.children || []);
-    const rowsNew = [];
     let gtTotal = 0;
     let gtCorrect = 0;
     let gtFp = 0; // saw non-existent glasses
@@ -260,7 +261,7 @@ async function runBatch(files, groundTruthMap = null) {
       t.title = isFinite(measureVal)
         ? `${predicted ? 'With' : 'No'} Glasses (${measureVal.toFixed(3)})${hasTruth ? ` • GT: ${truth ? 'With' : 'No'} Glasses` : ''}`
         : 'No face detected';
-      rowsNew.push({ path, measure: measureVal, withGlasses: predicted });
+      // UI classification only; CSV will be generated from the stable rows array
     }
     // Update badge for selected item, if any
     const selected = gridEl.querySelector('.thumb.selected');
@@ -272,7 +273,13 @@ async function runBatch(files, groundTruthMap = null) {
       measureBadge.classList.toggle('ok', !wgSel);
     }
     // Regenerate CSV download based on current threshold
-    const blob = createCsv(rowsNew);
+    // Build CSV from file-order rows and current threshold
+    const rowsForCsv = rows.map(r => ({
+      path: r.path,
+      measure: r.measure,
+      withGlasses: isFinite(r.measure) ? (r.measure > threshold) : false
+    }));
+    const blob = createCsv(rowsForCsv);
     const url = URL.createObjectURL(blob);
     downloadEl.href = url;
     downloadEl.style.display = 'inline-block';
@@ -421,19 +428,12 @@ async function runBatch(files, groundTruthMap = null) {
     measureBadge.classList.toggle('ok', !withGlasses);
     if (gridEl) {
       const thumb = document.createElement('div');
-      // Determine ground truth for this file (if provided)
       let truth = null;
-      if (groundTruthMap) {
-        const base = filePath.split('/').slice(-1)[0];
-        const baseNoExt = base.replace(/\.[^.]+$/, '');
-        const m = baseNoExt.match(/^face-(.+)$/);
-        if (m) {
-          const idKey = String(m[1]);
-          if (Object.prototype.hasOwnProperty.call(groundTruthMap, idKey)) {
-            truth = groundTruthMap[idKey];
-          }
-        }
-      }
+      const pathForTruth = (f.webkitRelativePath || filePath || '').toLowerCase();
+      const parts = pathForTruth.split('/');
+      const parent = parts.length > 1 ? parts[parts.length - 2] : '';
+      if (parent === 'glasses') truth = true;
+      else if (parent === 'no_glasses') truth = false;
       // Assign border class based on prediction vs truth (if available)
       const cls = (() => {
         if (truth === null) return withGlasses ? 'warn' : 'ok';
@@ -477,44 +477,35 @@ async function runBatch(files, groundTruthMap = null) {
 document.getElementById('startBtn').addEventListener('click', async () => {
   const input = document.getElementById('dirInput');
   const allFiles = Array.from(input.files || []);
-  const files = allFiles.filter(f => /\.(jpg|jpeg|png|bmp|webp)$/i.test(f.name));
-  if (files.length === 0) {
+  const imgFiles = allFiles.filter(f => /\.(jpg|jpeg|png|bmp|webp)$/i.test(f.name));
+  if (imgFiles.length === 0) {
     alert('Please choose a folder with images.');
     return;
   }
-  // Attempt to locate and parse train.csv for ground truth
-  async function buildGroundTruthMapFromFiles(list) {
-    const csvFile = list.find(f => f.name && f.name.toLowerCase() === 'train.csv');
-    if (!csvFile) return null;
-    try {
-      const text = await csvFile.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      if (lines.length === 0) return null;
-      const header = lines.shift();
-      const cols = header.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-      const idIdx = cols.findIndex(c => /^id$/i.test(c));
-      const gIdx = cols.findIndex(c => /^glasses$/i.test(c));
-      if (idIdx < 0 || gIdx < 0) return null;
-      const map = {};
-      for (const line of lines) {
-        const parts = line.split(',');
-        const rawId = (parts[idIdx] || '').trim().replace(/^"|"$/g, '');
-        const gRaw = (parts[gIdx] || '').trim().replace(/^"|"$/g, '');
-        if (!rawId) continue;
-        const gNum = parseFloat(gRaw);
-        const gBool = (gRaw === '1') || (!Number.isNaN(gNum) ? gNum > 0.5 : /^true$/i.test(gRaw));
-        map[String(rawId)] = !!gBool;
-      }
-      return map;
-    } catch (_) {
-      return null;
-    }
+  function parentFolderName(file) {
+    const p = (file.webkitRelativePath || file.name).split('/');
+    return p.length > 1 ? p[p.length - 2].toLowerCase() : '';
   }
-  const groundTruthMap = await buildGroundTruthMapFromFiles(allFiles);
+  function classifyFolder(name) {
+    const s = String(name || '').toLowerCase();
+    const t = s.replace(/[^a-z]/g, '');
+    if (t === 'glasses' || t === 'withglasses') return 'glasses';
+    if (t === 'noglasses' || t === 'withoutglasses' || t === 'noeyeglasses') return 'no_glasses';
+    return '';
+  }
+  const glassesFiles = imgFiles.filter(f => classifyFolder(parentFolderName(f)) === 'glasses');
+  const noGlassesFiles = imgFiles.filter(f => classifyFolder(parentFolderName(f)) === 'no_glasses');
+  const interleaved = [];
+  let i = 0, j = 0;
+  while (i < glassesFiles.length || j < noGlassesFiles.length) {
+    if (i < glassesFiles.length) interleaved.push(glassesFiles[i++]);
+    if (j < noGlassesFiles.length) interleaved.push(noGlassesFiles[j++]);
+  }
+  const files = interleaved.length > 0 ? interleaved : imgFiles;
   document.getElementById('downloadCsv').style.display = 'none';
   document.getElementById('progress').value = 0;
   document.getElementById('status').textContent = 'Starting...';
-  runBatch(files, groundTruthMap);
+  runBatch(files, null);
 });
 
 

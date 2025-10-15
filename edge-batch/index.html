@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Batch Glasses Detection (Edge/Nasal Bridge)</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- MediaPipe Face Mesh -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Batch Glasses Detection (Edge/Nasal Bridge)</h1>
+    <section class="panel" style="margin-bottom: 12px;">
+      <p>Select a folder containing face images. This page uses the edge-based nasal-bridge algorithm from the notebook.</p>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+        <input type="file" id="dirInput" webkitdirectory multiple accept="image/*" />
+        <button id="startBtn">Start</button>
+        <button id="cancelBtn">Cancel</button>
+        <a id="downloadCsv" download="glasses_results.csv" style="display:none;">Download CSV</a>
+        <label style="display:none; align-items:center; gap:6px; margin-left:auto;">
+          Threshold
+          <input id="thresholdInput" type="range" min="0" max="0.5" step="0.01" value="0" />
+          <span id="thresholdLabel">0.00</span>
+        </label>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <progress id="progress" value="0" max="100" style="width:300px;"></progress>
+        <span id="status">Idle</span>
+      </div>
+      <div id="summary" style="margin-top:8px; color:#9fb3c8;"></div>
+    </section>
+    <section class="panels">
+      <div class="panel">
+        <h3>Preview</h3>
+        <canvas id="preview" style="width:100%; background:#0f1629; border-radius:6px;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Aligned</h3>
+        <canvas id="aligned" style="width:256px; height:256px; background:#0f1629; border-radius:6px;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Edges</h3>
+        <canvas id="sobel" style="width:256px; height:256px; background:#0f1629; border-radius:6px;"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Measure</h3>
+        <div id="measureBadge" class="badge">—</div>
+      </div>
+      <div class="panel full">
+        <h3>Results Grid</h3>
+        <div id="thumbGrid" class="thumb-grid"></div>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="../src/edge-batch.js?v=2"></script>
+  <style>
+    button { background:#1f2937; color:#e8ecf1; border:1px solid #374151; padding:6px 10px; border-radius:6px; cursor:pointer; }
+    button:hover { background:#111827; }
+    a#downloadCsv { background:#064e3b; color:#a7f3d0; padding:6px 10px; border-radius:6px; text-decoration:none; }
+    #aligned, #sobel { transform: none !important; }
+  </style>
+  </body>
+  </html>
+
+
+
